@@ -45,7 +45,7 @@ const byte CHARS[][3] = {
   
   
   {'H',0b0000,4},
-  {'Z',0b0011,4},
+  {'Z',0b1100,4},
   {'G',0b110,3},
  
   {'V',0b0001,4},
@@ -73,7 +73,7 @@ const char *const modeOptions[] = {"Letters","Numbers","Mixed","Special","ProSig
 const char *const pause[] = {"No", "Yes"};
 // savedData[] = {WPM, WPM(F),Mode, MinWord, MaxWord, Buzz, Qty Letters , Qty Numbers}
 int savedData[] = {20, 13, 1, 5, 5, 700, 27, 10, 0};
-int savedDataMax[] = {40, 40, 5, 9, 9, 800, 27, 10, 1};
+int savedDataMax[] = {40, 40, 5, 15, 15, 800, 27, 10, 1};
 int savedDataMin[]= {5, 5, 1, 1, 1, 550, 1, 1, 0};
 
 byte icons[6][8] = { { 0x04,0x0e,0x15,0x04,0x04,0x04,0x04 }, // UP
@@ -90,6 +90,8 @@ enum BackLightColor { RED=0x1, GREEN, YELLOW, BLUE, VIOLET, TEAL, WHITE };
 enum Mode { Letters=0x01, Numbers, Mixed, Special, ProSign }; //Letter, Numbers, Mix, Special, ProSign
 
 
+byte strPos = 0;
+
 byte mult = 0;
 byte colPos = 0;
 byte clicked_buttons;
@@ -103,6 +105,9 @@ unsigned long timeUnitf;
 
 // 1st Line string
 char firstLinestr[17]; 
+//String firstLinestr, enteredStr;
+// Entered string
+char enteredStr[17];
 // Flag to indicated that saved data is valid
 boolean saved = true;
 
@@ -179,8 +184,8 @@ void startMorse(){
     if ((savedData[2] == Letters) | (savedData[2] == Numbers) | (savedData[2] == Mixed)) 
     sendSequence((byte)random(savedData[3],savedData[4]+1));
     else sendSequence ((byte)1);
-    Serial.println(firstLinestr);
     colPos = 0;
+    strPos = 0;
     state = IambicKey;
 }
 
@@ -302,7 +307,8 @@ void sendSequence(byte number){
           localnr = random(27,savedData[7]+27);
           break;
       case Mixed:
-          localnr = random(1,45);
+         // localnr = random(1,45);
+          localnr = random(1,38);
           break;
       case Special:
           localnr = random(37,41);	
@@ -352,9 +358,10 @@ void playLetter(byte idx) {
 
 //*****************************************
 void printLetter(byte idx){
-  if (idx > 40) lcd.write((byte)CHARS[idx][0]); 
-  else lcd.print((char)CHARS[idx][0]);
-  firstLinestr[colPos] = (byte)CHARS[idx][0];
+ lcd.print((char)CHARS[idx][0]);
+ // if (idx > 40) lcd.write((byte)CHARS[idx][0]); 
+ // else lcd.print((char)CHARS[idx][0]);
+  firstLinestr[colPos] = (char)CHARS[idx][0];
   colPos++;
 }
 
@@ -426,7 +433,7 @@ if ((savedData[0] < savedData[1])|(savedData[3] > savedData[4])) {
 
 void IambicKey()
 {
-
+ 
   if ((lcd.readButtons() & BUTTON_LEFT) || (!digitalRead(P_DOT))) // If the dot lever is presssed..     
   {
     keyAndBeep(speed);            // ... send a dot at the given speed
@@ -454,6 +461,8 @@ void IambicKey()
   { 
     t0 = millis();
     lcd.print(currentAssumedChar);
+    enteredStr[strPos] = currentAssumedChar;
+    strPos++;
 /*    curPos++;
     if (curPos == 16)
     {  
@@ -471,15 +480,35 @@ void IambicKey()
 
   if (((millis()-t3) > (25*speed)) & flag2)
   {
-    lcd.print(" ");
+/*    lcd.print(" ");
     curPos++;
     if (curPos == 16)
     {  
       lcd.setCursor(0,1);
       curPos = 0;      
     }
-   flag2 = false;   
+ */  flag2 = false;   
    t3 = 0;
+
+  boolean ts = false;
+  for(int i=0;i<17;i++){
+      Serial.print("i= ");
+      Serial.println(i);
+      if(enteredStr[i]==firstLinestr[i]){
+        ts = true;         
+      }else{
+        break;
+      }
+  }
+Serial.println(ts);
+  if (ts){
+       Serial.println("OK");
+       lcd.setBacklight(GREEN);
+  }
+  else {     
+       Serial.println("NOK");
+       lcd.setBacklight(RED);
+  }
    state = startMorse;      
   }
   
