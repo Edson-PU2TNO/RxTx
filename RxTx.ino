@@ -491,16 +491,22 @@ void IambicKey()
    t3 = 0;
 
   boolean ts = false;
-  for(int i=0;i<17;i++){
+
+  for(int i=0;i<sizeof(firstLinestr)/sizeof(char);i++){
       Serial.print("i= ");
       Serial.println(i);
+      Serial.println(enteredStr[i]);
+      Serial.println(firstLinestr[i]);
+      if (firstLinestr[i] == ' ') break;
+
       if(enteredStr[i]==firstLinestr[i]){
         ts = true;         
       }else{
+        ts = false;
         break;
-      }
+      }  
+      Serial.println(ts);
   }
-Serial.println(ts);
   if (ts){
        Serial.println("OK");
        lcd.setBacklight(GREEN);
