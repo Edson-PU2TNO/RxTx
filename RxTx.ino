@@ -12,6 +12,61 @@
  0 - dit
 */
 
+
+const byte CHARS[][3] = {
+  {' ',0b0,0}, // Space - 0
+  {'A',0b01,2}, 
+  {'B',0b1000,4},
+  {'C',0b1010,4},
+  {'D',0b100,3},
+  {'E',0b0,1},
+  {'F',0b0010,4},
+  {'G',0b110,3},
+  {'H',0b0000,4},
+  {'I',0b00,2},
+  {'J',0b0111,4}, //10
+  {'K',0b101,3},
+  {'L',0b0100,4},
+  {'M',0b11,2},
+  {'N',0b10,2},
+  {'O',0b111,3},
+  {'P',0b0110,4},
+  {'Q',0b1101,4},
+  {'R',0b010,3},
+  {'S',0b000,3},
+  {'T',0b1,1}, //20
+  {'U',0b001,3},
+  {'V',0b0001,4}, 
+  {'W',0b011,3},  
+  {'X',0b1001,4},
+  {'Y',0b1011,4},
+  {'Z',0b1100,4}, //26
+
+ 
+  {'1',0b01111,5}, //27  
+  {'2',0b00111,5},  
+  {'3',0b00011,5},
+  {'4',0b00001,5},
+  {'5',0b00000,5},
+  {'6',0b10000,5},
+  {'7',0b11000,5},
+  {'8',0b11100,5},
+  {'9',0b11110,5},
+  {'0',0b11111,5}, //36
+
+  {'/',0b10010,5}, //37
+  {'?',0b001100,6}, 
+  {',',0b110011,6}, 
+  {'.',0b010101,6}, //40  
+
+  {2,0b10001,5}, // BT - 41
+  {3,0b1000101,7}, // BK 
+  {4,0b10110,5}, // KN
+  {5,0b000101,6} // SK - 44 
+};
+
+/*
+
 // Koch Char Sequence
 const byte CHARS[][3] = {
   {' ',0b0,0}, // Space
@@ -64,11 +119,12 @@ const byte CHARS[][3] = {
   {5,0b000101,6} // SK 44 (idx=43)
 
 };
+*/
 
 //byte PARIS[] = {12,4,20,2,3};
 
 
-const char *const menuOptions[] = { "Words p/ minute","Words p/ min (F)", "Mode", "Word len min", "Word len max", "Buzz (KHz)", "Qty. of letters", "Qty. of numbers", "Pause" };
+const char *const menuOptions[] = { "Words p/ minute","Words p/ min (F)", "Mode", "Word len min", "Word len max", "Buzz (KHz)", "Qty. of letters", "Qty. of numbers", "Blind" };
 const char *const modeOptions[] = {"Letters","Numbers","Mixed","Special","ProSign"};
 const char *const pause[] = {"No", "Yes"};
 // savedData[] = {WPM, WPM(F),Mode, MinWord, MaxWord, Buzz, Qty Letters , Qty Numbers}
@@ -87,7 +143,7 @@ byte icons[6][8] = { { 0x04,0x0e,0x15,0x04,0x04,0x04,0x04 }, // UP
 //! Enum of backlight colors.
 enum Icons {UP=0x00, DOWN, BT, BK, KN, SK};
 enum BackLightColor { RED=0x1, GREEN, YELLOW, BLUE, VIOLET, TEAL, WHITE };
-enum Mode { Letters=0x01, Numbers, Mixed, Special, ProSign }; //Letter, Numbers, Mix, Special, ProSign
+enum Mode { Letters=0x01, Numbers, Mixed, Special, ProSign, Replay }; //Letter, Numbers, Mix, Special, ProSign
 
 
 byte strPos = 0;
@@ -102,6 +158,11 @@ unsigned long timeUnit; // = (1000*1.2/savedData[0]);
 
 // Time Unit for Farnworth method
 unsigned long timeUnitf;
+
+
+byte replayArray[17];
+byte rIdx = 0;
+boolean repeatFlag = false;
 
 // 1st Line string
 char firstLinestr[17]; 
@@ -251,7 +312,7 @@ void read_button_clicks() {
 void splashScreen(){
   lcd.clear();
   lcd.setBacklight(TEAL);
-  lcd.print(F("Morse Gen V0.3"));
+  lcd.print(F("Morse Gen V0.4"));
   lcd.setCursor(0,1);
   lcd.print("Mode: "); lcd.print(modeOptions[savedData[2]-1]); 
   delay(2000);
@@ -271,6 +332,7 @@ void sendSequence(byte number){
   unsigned long t0,t1,t2 = 0;
   timeUnit = (1000*1.2/savedData[0]); // in mili seconds
   timeUnitf = ((((60*savedData[0]) - (37.2*savedData[1]))/(savedData[0]*savedData[1]))/19)*1000; // in mili seconds
+  int type = savedData[2];
 /* if ((colPos+number+1) > 17){
     linenr++;
     while ((linenr == 2) & (savedData[8])) {
@@ -298,8 +360,15 @@ void sendSequence(byte number){
       
   lcd.clear();
   lcd.setCursor(0,0);
+
+  if (repeatFlag) { 
+      rIdx = 0;
+      type = Replay;
+      repeatFlag = false;
+    }
+  
   for (int i=0; i<number; i++) {
-    switch (savedData[2]) {
+    switch (type) {
       case Letters:
           localnr = random(1,savedData[6]+1);
           break;
@@ -308,7 +377,7 @@ void sendSequence(byte number){
           break;
       case Mixed:
          // localnr = random(1,45);
-          localnr = random(1,38);
+          localnr = random(1,37);
           break;
       case Special:
           localnr = random(37,41);	
@@ -316,10 +385,20 @@ void sendSequence(byte number){
       case ProSign:
           localnr = random(41,45);
           break;
+      case Replay:
+          Serial.print("Replay");
+          localnr = (byte)replayArray[rIdx];
+          break;
       default: //Letters
           localnr = random(1,savedData[6]+1);
           break;
-    }
+       }
+  
+    replayArray[rIdx] = localnr;
+    rIdx++;
+Serial.print("rIdx: ");
+Serial.println(rIdx);
+    
     playLetter(localnr);        
 // display letter and consider time spent to process it
     t0 = millis(); 
@@ -328,6 +407,7 @@ void sendSequence(byte number){
 // delay 3 Time Units (inter char space) minus time spent to display the letter. Not applied for the last char in the word
     if (i<number) delay (charSpace - t1);
   }
+
   t0 = millis(); 
   printLetter(0);
   t1 = millis() - t0;
@@ -358,7 +438,7 @@ void playLetter(byte idx) {
 
 //*****************************************
 void printLetter(byte idx){
- lcd.print((char)CHARS[idx][0]);
+ if (!savedData[8]) lcd.print((char)CHARS[idx][0]);
  // if (idx > 40) lcd.write((byte)CHARS[idx][0]); 
  // else lcd.print((char)CHARS[idx][0]);
   firstLinestr[colPos] = (char)CHARS[idx][0];
@@ -490,13 +570,25 @@ void IambicKey()
  */  flag2 = false;   
    t3 = 0;
 
+  if (enteredStr[0] == '?') {
+    Serial.println("?");
+    repeatFlag = true;
+    sendSequence(rIdx);
+    colPos = 0;
+    strPos = 0;
+    state = IambicKey;
+    return;
+    }
+
+ 
+ 
   boolean ts = false;
 
   for(int i=0;i<sizeof(firstLinestr)/sizeof(char);i++){
-      Serial.print("i= ");
-      Serial.println(i);
-      Serial.println(enteredStr[i]);
-      Serial.println(firstLinestr[i]);
+ //     Serial.print("i= ");
+ //     Serial.println(i);
+ //     Serial.println(enteredStr[i]);
+ //     Serial.println(firstLinestr[i]);
       if (firstLinestr[i] == ' ') break;
 
       if(enteredStr[i]==firstLinestr[i]){
@@ -505,16 +597,17 @@ void IambicKey()
         ts = false;
         break;
       }  
-      Serial.println(ts);
+ //     Serial.println(ts);
   }
   if (ts){
-       Serial.println("OK");
+ //      Serial.println("OK");
        lcd.setBacklight(GREEN);
   }
   else {     
-       Serial.println("NOK");
+ //      Serial.println("NOK");
        lcd.setBacklight(RED);
   }
+   rIdx = 0;
    state = startMorse;      
   }
   
