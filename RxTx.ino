@@ -163,6 +163,9 @@ unsigned long timeUnitf;
 byte replayArray[17];
 byte rIdx = 0;
 boolean repeatFlag = false;
+boolean unBlind = false;
+
+
 
 // 1st Line string
 char firstLinestr[17]; 
@@ -438,7 +441,7 @@ void playLetter(byte idx) {
 
 //*****************************************
 void printLetter(byte idx){
- if (!savedData[8]) lcd.print((char)CHARS[idx][0]);
+ if (!savedData[8] | unBlind) lcd.print((char)CHARS[idx][0]);
  // if (idx > 40) lcd.write((byte)CHARS[idx][0]); 
  // else lcd.print((char)CHARS[idx][0]);
   firstLinestr[colPos] = (char)CHARS[idx][0];
@@ -571,12 +574,7 @@ void IambicKey()
    t3 = 0;
 
   if (enteredStr[0] == '?') {
-    Serial.println("?");
-    repeatFlag = true;
-    sendSequence(rIdx);
-    colPos = 0;
-    strPos = 0;
-    state = IambicKey;
+    repeatLast();
     return;
     }
 
@@ -606,6 +604,10 @@ void IambicKey()
   else {     
  //      Serial.println("NOK");
        lcd.setBacklight(RED);
+       unBlind = true;
+       repeatLast();
+       unBlind = false;	
+       return;
   }
    rIdx = 0;
    state = startMorse;      
@@ -641,4 +643,11 @@ char lookup(char currentMark)
     else if (currentDecoderIndex == 90) return 4; // Display KN prosign
     else if (currentDecoderIndex == 14) return 5; // Display SK prosign    
     return lookupString[currentDecoderIndex];
+}
+void repeatLast(){
+    repeatFlag = true;
+    sendSequence(rIdx);
+    colPos = 0;
+    strPos = 0;
+    state = IambicKey;
 }

@@ -7,6 +7,7 @@ void sendSequence(byte number);
 void playLetter(byte idx);
 void printLetter(byte idx);
 void configValue(byte idx);
+void repeatLast();
 
 #define debug true
 #define mask 0b10000000
